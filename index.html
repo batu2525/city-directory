@@ -4,19 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>City Directory & Events</title>
-    <!-- Tailwind CDN (no build step) -->
+    <!-- Tailwind + Supabase CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS (global: window.supabase) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>html,body{height:100%}</style>
   </head>
   <body class="min-h-screen text-neutral-900">
     <main class="min-h-screen w-full bg-cover bg-center" style="background-image:url('bg.jpg')">
-      <!-- overlay kaldırıldı ki arka plan tam renkli görünsün -->
       <div class="min-h-screen w-full">
         <div class="mx-auto max-w-7xl p-4 md:p-8">
           <header class="mb-6 md:mb-8">
-            <h1 class="text-2xl md:text-3xl font-bold tracking-tight">City Directory & Community Events</h1>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight">City Directory & Sentient TR Community Events — made by GembBatu</h1>
             <p class="text-sm text-black/70">Public board where anyone can add their nickname + city, and plan events by city.</p>
           </header>
 
@@ -93,31 +91,21 @@
             </section>
           </div>
 
-          <footer class="mt-8 text-xs text-black/50">
-            <p>Tip: place your background image as <code>bg.jpg</code> next to this file. All labels are in English as requested.</p>
-          </footer>
+          
         </div>
       </div>
     </main>
 
     <script>
-      // --- Configuration (quotes added!) ---
+      // --- Configuration ---
       const SUPABASE_URL = "https://mdefhhktivixraayiuev.supabase.co";
       const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kZWZoaGt0aXZpeHJhYXlpdWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMTc1NzgsImV4cCI6MjA3MTc5MzU3OH0.sAdUyla9amsPCZ07QVDH9k8HWmPQnGbK92b9B6hfgHc";
 
-      // --- Supabase client ---
-      const supabase = (SUPABASE_URL && SUPABASE_ANON) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-      // --- Cities (TR, A→Z, 81 il) ---
+      // --- Cities (TR, 81) ---
       const CITIES = [
-        "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın",
-        "Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale",
-        "Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir",
-        "Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş",
-        "Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli",
-        "Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye",
-        "Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon",
-        "Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
+        "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
       ].sort((a,b)=>a.localeCompare(b,'tr'));
 
       // --- Helpers ---
@@ -161,7 +149,7 @@
         }
         title.textContent = `Nicknames in ${selectedCity}`;
         const list = entries.filter(e=>e.city===selectedCity);
-        filtered.innerHTML = list.length? '': `<div class="p-3 text-sm text-black/60">No nicknames yet for ${selectedCity}.</div>`;
+        filtered.innerHTML = list.length? '': `<div class="p-3 text-sm text-black/60">No nicknames yet for ${selectedCity}.`;
         list.forEach(e=>{
           const row = document.createElement('div');
           row.className = 'p-3 text-sm flex items-center justify-between';
@@ -200,7 +188,7 @@
       // --- Realtime ---
       function setupRealtime(){
         if(!supabase) return;
-        supabase.channel('public:entries-events')
+        const ch = supabase.channel('public:entries-events')
           .on('postgres_changes',{ event:'INSERT', schema:'public', table:'entries' }, payload=>{
             entries = [{...payload.new}, ...entries];
             renderEntries();
@@ -218,15 +206,27 @@
         const nickname = el('nickname').value.trim();
         const city = el('city').value;
         if(!nickname || !city){ showAlert('Please enter a nickname and choose a city.','error'); return; }
+        // Duplicate check: same nickname in same city only once
+        const { data: exists, error: checkErr } = await supabase
+          .from('entries')
+          .select('id')
+          .eq('nickname', nickname)
+          .eq('city', city)
+          .limit(1);
+        if(checkErr){ showAlert(checkErr.message,'error'); return; }
+        if(exists && exists.length){ showAlert('This nickname is already listed for the selected city.','error'); return; }
         const { error } = await supabase.from('entries').insert({ nickname, city });
+        if(error){ showAlert(error.message,'error'); return; }
+        el('nickname').value=''; el('city').value='';
+      });
         if(error){ showAlert(error.message,'error'); return; }
         el('nickname').value=''; el('city').value='';
       });
 
       el('addEvent').addEventListener('click', async ()=>{
-        if(!supabase){ showAlert('Supabase is not connected. Add your URL and anon key in the file.','error'); return; }
+        if(!supabase){ showAlert('Supabase is not connected.','error'); return; }
         const title = el('eventTitle').value.trim();
-        const dateRaw = el('eventDate').value; // yyyy-MM-ddThh:mm
+        const dateRaw = el('eventDate').value;
         const city = el('eventCity').value;
         const description = el('eventDesc').value.trim();
         if(!title || !dateRaw || !city){ showAlert('Please provide title, date, and city for the event.','error'); return; }
@@ -236,12 +236,14 @@
         el('eventTitle').value=''; el('eventDate').value=''; el('eventCity').value=''; el('eventDesc').value='';
       });
 
-      el('filterCity').addEventListener('change', (e)=>{ selectedCity = e.target.value; renderEntries(); renderEvents(); });
+      function updateShowAll(){ const btn = el('showAll'); if(!btn) return; btn.textContent = selectedCity ? `Show all in ${selectedCity}` : 'Show all'; }
+      el('filterCity').addEventListener('change', (e)=>{ selectedCity = e.target.value; renderEntries(); renderEvents(); updateShowAll(); });
       el('showAll').addEventListener('click', ()=>{ renderEntries(); });
 
       // --- Kickoff ---
       loadAll();
       setupRealtime();
+      updateShowAll();
     </script>
   </body>
 </html>
