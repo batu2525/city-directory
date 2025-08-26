@@ -4,13 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>City Directory & Events</title>
-    <!-- Tailwind Play CDN (no build step) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Tailwind CDN (no build step) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS (global: window.supabase) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>html,body{height:100%}</style>
   </head>
   <body class="min-h-screen text-neutral-900">
     <main class="min-h-screen w-full bg-cover bg-center" style="background-image:url('bg.jpg')">
-      <div class="min-h-screen w-full bg-white/70">
+      <!-- overlay kaldırıldı ki arka plan tam renkli görünsün -->
+      <div class="min-h-screen w-full">
         <div class="mx-auto max-w-7xl p-4 md:p-8">
           <header class="mb-6 md:mb-8">
             <h1 class="text-2xl md:text-3xl font-bold tracking-tight">City Directory & Community Events</h1>
@@ -97,19 +100,24 @@
       </div>
     </main>
 
-    <script type="module">
-      // --- Configuration ---
-      // Replace these two lines with your own Supabase values from Project Settings → API
-      const SUPABASE_URL = https://mdefhhktivixraayiuev.supabase.co; // e.g. https://xxxx.supabase.co
-      const SUPABASE_ANON = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kZWZoaGt0aXZpeHJhYXlpdWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMTc1NzgsImV4cCI6MjA3MTc5MzU3OH0.sAdUyla9amsPCZ07QVDH9k8HWmPQnGbK92b9B6hfgHc; // sb_publishable_xxx (safe to expose with RLS)
+    <script>
+      // --- Configuration (quotes added!) ---
+      const SUPABASE_URL = "https://mdefhhktivixraayiuev.supabase.co";
+      const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kZWZoaGt0aXZpeHJhYXlpdWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMTc1NzgsImV4cCI6MjA3MTc5MzU3OH0.sAdUyla9amsPCZ07QVDH9k8HWmPQnGbK92b9B6hfgHc";
 
-      // --- Libraries ---
-      import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-      const supabase = (SUPABASE_URL && SUPABASE_ANON) ? createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+      // --- Supabase client ---
+      const supabase = (SUPABASE_URL && SUPABASE_ANON) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
 
-      // --- Cities (TR, A→Z) ---
+      // --- Cities (TR, A→Z, 81 il) ---
       const CITIES = [
-        "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
+        "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın",
+        "Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale",
+        "Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir",
+        "Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş",
+        "Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli",
+        "Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye",
+        "Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon",
+        "Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
       ].sort((a,b)=>a.localeCompare(b,'tr'));
 
       // --- Helpers ---
@@ -192,7 +200,7 @@
       // --- Realtime ---
       function setupRealtime(){
         if(!supabase) return;
-        const ch = supabase.channel('public:entries-events')
+        supabase.channel('public:entries-events')
           .on('postgres_changes',{ event:'INSERT', schema:'public', table:'entries' }, payload=>{
             entries = [{...payload.new}, ...entries];
             renderEntries();
