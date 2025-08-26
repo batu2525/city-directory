@@ -76,12 +76,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h3 class="font-medium text-sm mb-2">All Nicknames (live) <span id="countAll" class="text-xs text-black/50"></span></h3>
-                    <!-- max-h kaldırıldı; JS ile 4 satıra sabitlenecek -->
+                    <!-- 4 öğe görünümü: JS maxHeight ile ayarlanıyor -->
                     <div id="allEntries" class="overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70"></div>
                   </div>
                   <div>
                     <h3 id="filteredTitle" class="font-medium text-sm mb-2">Filtered (choose a city) <span id="countFiltered" class="text-xs text-black/50"></span></h3>
-                    <!-- max-h kaldırıldı; JS ile 4 satıra sabitlenecek -->
+                    <!-- 4 öğe görünümü: JS maxHeight ile ayarlanıyor -->
                     <div id="filteredEntries" class="overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70 p-0"></div>
                   </div>
                 </div>
@@ -94,7 +94,7 @@
                   <span class="text-xs text-black/50">Soonest first</span>
                 </div>
                 <div class="text-sm text-black/60 mb-2" id="eventsScope">Showing events in all cities</div>
-                <!-- max-h kaldırıldı; JS ile 4 karta sabitlenecek -->
+                <!-- 4 öğe görünümü: JS maxHeight ile ayarlanıyor -->
                 <div id="eventsList" class="overflow-y-auto space-y-3 pr-1"></div>
               </div>
             </section>
@@ -293,13 +293,30 @@
         const nickname = el('nickname').value.trim();
         const city = el('city').value;
         if(!nickname || !city){ showAlert('Please enter a nickname and choose a city.','error'); return; }
-        // duplicate check (same nickname + same city)
+
+        // (Opsiyonel) önden kontrol – aynı city+nickname var mı?
         const { data: exists, error: checkErr } = await supabase
-          .from('entries').select('id').eq('nickname', nickname).eq('city', city).limit(1);
+          .from('entries')
+          .select('id')
+          .eq('nickname', nickname)
+          .eq('city', city)
+          .limit(1);
         if(checkErr){ showAlert(checkErr.message,'error'); return; }
-        if(exists && exists.length){ showAlert('This nickname is already listed for the selected city.','error'); return; }
+        if(exists && exists.length){
+          showAlert('This nickname already exists for this city.','error');
+          return;
+        }
+
+        // Kayıt dene; veritabanındaki UNIQUE kuralı kesin koruma sağlar
         const { error } = await supabase.from('entries').insert({ nickname, city });
-        if(error){ showAlert(error.message,'error'); return; }
+        if(error){
+          const msg = (error.code === '23505' || /duplicate key|unique/i.test(error.message))
+            ? 'This nickname already exists for this city.'
+            : error.message;
+          showAlert(msg,'error');
+          return;
+        }
+
         el('nickname').value=''; el('city').value='';
       });
 
@@ -336,10 +353,63 @@
         });
       }
 
+      // --- 4 ÖĞE GÖRÜNÜMÜ: Kapların yüksekliğini ilk öğeye göre 4x yap ---
+      function setScrollViewports(){
+        requestAnimationFrame(()=>{
+          // A) All Nicknames
+          (function(){
+            const box = el('allEntries');
+            if(!box) return;
+            const row = box.firstElementChild;
+            const rowH = row ? row.getBoundingClientRect().height : 44;
+            box.style.maxHeight = (rowH * 4) + 'px';
+          })();
+          // B) Filtered Nicknames
+          (function(){
+            const box = el('filteredEntries');
+            if(!box) return;
+            const row = box.firstElementChild;
+            const rowH = row ? row.getBoundingClientRect().height : 44;
+            box.style.maxHeight = (rowH * 4) + 'px';
+          })();
+          // C) Events
+          (function(){
+            const box = el('eventsList');
+            if(!box) return;
+            const card = box.firstElementChild;
+            const cardH = card ? card.getBoundingClientRect().height : 90;
+            box.style.maxHeight = (cardH * 4) + 'px';
+          })();
+        });
+      }
+
       // --- Kickoff ---
+      async function loadAll(){
+        if(!supabase){ el('connectHint').classList.remove('hidden'); return; }
+        const { data: e1, error: err1 } = await supabase.from('entries').select('id,nickname,city,created_at').order('created_at', { ascending: false });
+        const { data: e2, error: err2 } = await supabase.from('events').select('id,title,description,city,event_date,created_at').order('event_date', { ascending: true });
+        if(err1||err2){ showAlert((err1||err2).message,'error'); }
+        entries = e1 || [];
+        events = (e2 || []).sort((a,b)=> new Date(a.event_date)-new Date(b.event_date));
+        renderEntries();
+        renderEvents();
+      }
+      function setupRealtime(){
+        if(!supabase) return;
+        supabase.channel('public:entries-events')
+          .on('postgres_changes',{ event:'INSERT', schema:'public', table:'entries' }, payload=>{
+            entries = [{...payload.new}, ...entries];
+            renderEntries();
+          })
+          .on('postgres_changes',{ event:'INSERT', schema:'public', table:'events' }, payload=>{
+            events = [...events, payload.new].sort((a,b)=> new Date(a.event_date)-new Date(b.event_date));
+            renderEvents();
+          })
+          .subscribe();
+      }
+
       loadAll();
       setupRealtime();
-      // Initialize from URL ?city=
       (function(){
         const url = new URL(window.location.href);
         const c = url.searchParams.get('city');
@@ -348,11 +418,12 @@
           const sel = el('filterCity');
           if(sel){ sel.value = c; }
         }
-        updateShowAll();
+        // UI init
+        (function initShowAll(){ const btn = el('showAll'); if(btn){ btn.textContent = selectedCity ? `Show all in ${selectedCity}` : 'Show all'; } })();
         renderEntries();
         renderEvents();
-        setScrollViewports();        // açılışta 4-öğe görünümü
-        window.addEventListener('resize', setScrollViewports); // pencere boyutu değişince koru
+        setScrollViewports();
+        window.addEventListener('resize', setScrollViewports);
       })();
     </script>
   </body>
