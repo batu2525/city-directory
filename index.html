@@ -53,7 +53,8 @@
                   <input id="eventDate" type="datetime-local" class="rounded-xl border border-black/15 px-3 py-2 outline-none focus:ring-2 focus:ring-black/15" />
                   <select id="eventCity" class="rounded-xl border border-black/15 px-3 py-2 outline-none focus:ring-2 focus:ring-black/15"></select>
                   <div></div>
-                  <textarea id="eventDesc" rows="3" placeholder="Optional description (where, what, link)…" class="sm:col-span-2 rounded-xl border border-black/15 px-3 py-2 outline-none focus:ring-2 focus:ring-black/15"></textarea>
+                  <input id="eventLink" placeholder="Optional link (map, chat, website)" class="rounded-xl border border-black/15 px-3 py-2 outline-none focus:ring-2 focus:ring-black/15" />
+                  <textarea id="eventDesc" rows="3" placeholder="Optional description (where, what)…" class="sm:col-span-2 rounded-xl border border-black/15 px-3 py-2 outline-none focus:ring-2 focus:ring-black/15"></textarea>
                   <button id="addEvent" class="sm:col-span-2 rounded-xl px-3 py-2 font-medium shadow bg-black text-white hover:bg-black/90 active:scale-[.99]">Add Event</button>
                 </div>
               </div>
@@ -67,17 +68,18 @@
                   <h2 class="text-lg font-semibold tracking-tight">Directory</h2>
                   <div class="flex items-center gap-2">
                     <label for="filterCity" class="text-xs text-black/60">City Browser</label>
+                    <input id="citySearch" placeholder="Search city" class="rounded-xl border border-black/15 px-2 py-1 text-sm" style="width:140px" />
                     <select id="filterCity" class="rounded-xl border border-black/15 px-2 py-1 text-sm"></select>
                     <button id="showAll" class="rounded-xl border px-3 py-1 text-sm bg-black text-white hover:bg-black/90">Show all</button>
                   </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 class="font-medium text-sm mb-2">All Nicknames (live)</h3>
+                    <h3 class="font-medium text-sm mb-2">All Nicknames (live) <span id="countAll" class="text-xs text-black/50"></span></h3>
                     <div id="allEntries" class="max-h-80 overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70"></div>
                   </div>
                   <div>
-                    <h3 id="filteredTitle" class="font-medium text-sm mb-2">Filtered (choose a city)</h3>
+                    <h3 id="filteredTitle" class="font-medium text-sm mb-2">Filtered (choose a city) <span id="countFiltered" class="text-xs text-black/50"></span></h3>
                     <div id="filteredEntries" class="max-h-80 overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70 p-0"></div>
                   </div>
                 </div>
@@ -127,14 +129,20 @@
         a.className = `mb-4 rounded-xl border p-3 text-sm ${type==='error'?'border-red-200 bg-red-50 text-red-700':'border-black/10 bg-white/80 text-black/80'}`;
         a.classList.remove('hidden');
       };
+      const extractUrl = (text)=> {
+        if(!text) return "";
+        const m = text.match(/https?:\/\/[^\s]+/);
+        return m ? m[0] : "";
+      };
 
       // --- Fill selects ---
-      const citySelects = [el('city'), el('eventCity'), el('filterCity')];
-      citySelects.forEach((s,i)=>{
-        if(!s) return;
-        s.innerHTML = i===2 ? `<option value="">All cities</option>` : `<option value="">Choose a city…</option>`;
-        CITIES.forEach(c=>{ const opt=document.createElement('option'); opt.value=c; opt.textContent=c; s.appendChild(opt); });
-      });
+      const fillCities = (selectEl, includeAll=false)=>{
+        selectEl.innerHTML = includeAll ? `<option value="">All cities</option>` : `<option value="">Choose a city…</option>`;
+        CITIES.forEach(c=>{ const opt=document.createElement('option'); opt.value=c; opt.textContent=c; selectEl.appendChild(opt); });
+      };
+      fillCities(el('city'));
+      fillCities(el('eventCity'));
+      fillCities(el('filterCity'), true);
 
       // --- State ---
       let entries = [];
@@ -146,6 +154,9 @@
         const all = el('allEntries');
         const filtered = el('filteredEntries');
         const title = el('filteredTitle');
+        const cAll = el('countAll');
+        const cFilt = el('countFiltered');
+
         all.innerHTML = entries.length? '': '<div class="p-3 text-sm text-black/60">No entries yet.</div>';
         entries.forEach(e=>{
           const row = document.createElement('div');
@@ -153,14 +164,18 @@
           row.innerHTML = `<span class="font-medium">${e.nickname}</span><span class="text-black/60">${e.city}</span>`;
           all.appendChild(row);
         });
+        if(cAll) cAll.textContent = entries.length ? `(${entries.length})` : '';
+
         if(!selectedCity){
           title.textContent = 'Filtered (choose a city)';
           filtered.innerHTML = '<div class="p-3 text-sm text-black/60">Pick a city above and press “Show all”.</div>';
+          if(cFilt) cFilt.textContent = '';
           return;
         }
         title.textContent = `Nicknames in ${selectedCity}`;
         const list = entries.filter(e=>e.city===selectedCity);
         filtered.innerHTML = list.length? '': `<div class="p-3 text-sm text-black/60">No nicknames yet for ${selectedCity}.</div>`;
+        if(cFilt) cFilt.textContent = list.length ? `(${list.length})` : '';
         list.forEach(e=>{
           const row = document.createElement('div');
           row.className = 'p-3 text-sm flex items-center justify-between';
@@ -177,9 +192,16 @@
         list.innerHTML = '';
         if(!data.length){ list.innerHTML = '<div class="p-3 text-sm text-black/60">No events yet.</div>'; return; }
         data.forEach(ev=>{
+          const link = extractUrl(ev.description);
           const card = document.createElement('div');
           card.className = 'rounded-xl border border-black/10 p-3 bg-white/70';
-          card.innerHTML = `<div class="flex items-center justify-between gap-3"><div class="font-medium">${ev.title}</div><div class="text-xs text-black/60">${ev.city} • ${fmt(ev.event_date)}</div></div>` + (ev.description? `<p class="mt-1 text-sm text-black/75 whitespace-pre-wrap">${ev.description}</p>`:'');
+          card.innerHTML =
+            `<div class="flex items-center justify-between gap-3">
+               <div class="font-medium">${ev.title}</div>
+               <div class="text-xs text-black/60">${ev.city} • ${fmt(ev.event_date)}</div>
+             </div>` +
+            (ev.description? `<p class="mt-1 text-sm text-black/75 whitespace-pre-wrap">${ev.description}</p>`:'') +
+            (link ? `<a href="${link}" target="_blank" rel="noopener" class="mt-2 inline-block text-sm underline">Open link</a>` : '');
           list.appendChild(card);
         });
       }
@@ -189,6 +211,12 @@
         const btn = el('showAll');
         if(!btn) return;
         btn.textContent = selectedCity ? `Show all in ${selectedCity}` : 'Show all';
+      }
+      function setCityParam(){
+        const url = new URL(window.location.href);
+        if(selectedCity){ url.searchParams.set('city', selectedCity); }
+        else{ url.searchParams.delete('city'); }
+        history.replaceState(null,'',url);
       }
 
       // --- Data fetch ---
@@ -240,20 +268,49 @@
         const dateRaw = el('eventDate').value; // yyyy-MM-ddThh:mm
         const city = el('eventCity').value;
         const description = el('eventDesc').value.trim();
+        const linkRaw = (document.getElementById('eventLink')?.value || '').trim();
         if(!title || !dateRaw || !city){ showAlert('Please provide title, date, and city for the event.','error'); return; }
         const iso = new Date(dateRaw).toISOString();
-        const { error } = await supabase.from('events').insert({ title, description: description || null, city, event_date: iso });
+        const descWithLink = linkRaw ? (description ? description + "\n" + linkRaw : linkRaw) : description || null;
+        const { error } = await supabase.from('events').insert({ title, description: descWithLink, city, event_date: iso });
         if(error){ showAlert(error.message,'error'); return; }
-        el('eventTitle').value=''; el('eventDate').value=''; el('eventCity').value=''; el('eventDesc').value='';
+        el('eventTitle').value=''; el('eventDate').value=''; el('eventCity').value=''; if(document.getElementById('eventLink')) document.getElementById('eventLink').value=''; el('eventDesc').value='';
       });
 
-      el('filterCity').addEventListener('change', (e)=>{ selectedCity = e.target.value; renderEntries(); renderEvents(); updateShowAll(); });
-      el('showAll').addEventListener('click', ()=>{ renderEntries(); });
+      el('filterCity').addEventListener('change', (e)=>{ selectedCity = e.target.value; renderEntries(); renderEvents(); updateShowAll(); setCityParam(); });
+      el('showAll').addEventListener('click', ()=>{ renderEntries(); document.getElementById('filteredEntries')?.scrollIntoView({behavior:'smooth', block:'start'}); });
+
+      // City search for the Browser select
+      const citySearch = document.getElementById('citySearch');
+      if(citySearch){
+        citySearch.addEventListener('input', ()=>{
+          const q = citySearch.value.toLowerCase();
+          const sel = el('filterCity');
+          const current = sel.value;
+          sel.innerHTML = '<option value="">All cities</option>';
+          CITIES.filter(c=>c.toLowerCase().includes(q)).forEach(c=>{
+            const opt=document.createElement('option'); opt.value=c; opt.textContent=c; sel.appendChild(opt);
+          });
+          if([...sel.options].some(o=>o.value===current)) sel.value = current;
+        });
+      }
 
       // --- Kickoff ---
       loadAll();
       setupRealtime();
-      updateShowAll();
+      // Initialize from URL ?city=
+      (function(){
+        const url = new URL(window.location.href);
+        const c = url.searchParams.get('city');
+        if(c){
+          selectedCity = c;
+          const sel = el('filterCity');
+          if(sel){ sel.value = c; }
+        }
+        updateShowAll();
+        renderEntries();
+        renderEvents();
+      })();
     </script>
   </body>
 </html>
