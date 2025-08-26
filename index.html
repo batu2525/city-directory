@@ -76,11 +76,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h3 class="font-medium text-sm mb-2">All Nicknames (live) <span id="countAll" class="text-xs text-black/50"></span></h3>
-                    <div id="allEntries" class="max-h-80 overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70"></div>
+                    <!-- max-h kaldırıldı; JS ile 4 satıra sabitlenecek -->
+                    <div id="allEntries" class="overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70"></div>
                   </div>
                   <div>
                     <h3 id="filteredTitle" class="font-medium text-sm mb-2">Filtered (choose a city) <span id="countFiltered" class="text-xs text-black/50"></span></h3>
-                    <div id="filteredEntries" class="max-h-80 overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70 p-0"></div>
+                    <!-- max-h kaldırıldı; JS ile 4 satıra sabitlenecek -->
+                    <div id="filteredEntries" class="overflow-y-auto rounded-xl border border-black/10 divide-y bg-white/70 p-0"></div>
                   </div>
                 </div>
               </div>
@@ -92,7 +94,8 @@
                   <span class="text-xs text-black/50">Soonest first</span>
                 </div>
                 <div class="text-sm text-black/60 mb-2" id="eventsScope">Showing events in all cities</div>
-                <div id="eventsList" class="max-h-96 overflow-y-auto space-y-3 pr-1"></div>
+                <!-- max-h kaldırıldı; JS ile 4 karta sabitlenecek -->
+                <div id="eventsList" class="overflow-y-auto space-y-3 pr-1"></div>
               </div>
             </section>
           </div>
@@ -170,6 +173,7 @@
           title.textContent = 'Filtered (choose a city)';
           filtered.innerHTML = '<div class="p-3 text-sm text-black/60">Pick a city above and press “Show all”.</div>';
           if(cFilt) cFilt.textContent = '';
+          setScrollViewports();
           return;
         }
         title.textContent = `Nicknames in ${selectedCity}`;
@@ -182,6 +186,8 @@
           row.innerHTML = `<span class="font-medium">${e.nickname}</span><span class="text-black/60">${fmt(e.created_at)}</span>`;
           filtered.appendChild(row);
         });
+
+        setScrollViewports();
       }
 
       function renderEvents(){
@@ -190,7 +196,7 @@
         const data = selectedCity? events.filter(ev=>ev.city===selectedCity) : events;
         scope.textContent = selectedCity? `Showing events in ${selectedCity}` : 'Showing events in all cities';
         list.innerHTML = '';
-        if(!data.length){ list.innerHTML = '<div class="p-3 text-sm text-black/60">No events yet.</div>'; return; }
+        if(!data.length){ list.innerHTML = '<div class="p-3 text-sm text-black/60">No events yet.</div>'; setScrollViewports(); return; }
         data.forEach(ev=>{
           const link = extractUrl(ev.description);
           const card = document.createElement('div');
@@ -203,6 +209,41 @@
             (ev.description? `<p class="mt-1 text-sm text-black/75 whitespace-pre-wrap">${ev.description}</p>`:'') +
             (link ? `<a href="${link}" target="_blank" rel="noopener" class="mt-2 inline-block text-sm underline">Open link</a>` : '');
           list.appendChild(card);
+        });
+
+        setScrollViewports();
+      }
+
+      // --- 4 ÖĞE GÖRÜNÜMÜ: Kapların yüksekliğini ilk öğeye göre 4x yap ---
+      function setScrollViewports(){
+        // Ölçümü DOM güncellendikten sonra yap
+        requestAnimationFrame(()=>{
+          // A) All Nicknames
+          (function(){
+            const box = el('allEntries');
+            if(!box) return;
+            const row = box.firstElementChild;
+            const rowH = row ? row.getBoundingClientRect().height : 44; // varsayılan
+            box.style.maxHeight = (rowH * 4) + 'px';
+          })();
+
+          // B) Filtered Nicknames
+          (function(){
+            const box = el('filteredEntries');
+            if(!box) return;
+            const row = box.firstElementChild;
+            const rowH = row ? row.getBoundingClientRect().height : 44;
+            box.style.maxHeight = (rowH * 4) + 'px';
+          })();
+
+          // C) Events
+          (function(){
+            const box = el('eventsList');
+            if(!box) return;
+            const card = box.firstElementChild;
+            const cardH = card ? card.getBoundingClientRect().height : 90;
+            box.style.maxHeight = (cardH * 4) + 'px';
+          })();
         });
       }
 
@@ -310,6 +351,8 @@
         updateShowAll();
         renderEntries();
         renderEvents();
+        setScrollViewports();        // açılışta 4-öğe görünümü
+        window.addEventListener('resize', setScrollViewports); // pencere boyutu değişince koru
       })();
     </script>
   </body>
